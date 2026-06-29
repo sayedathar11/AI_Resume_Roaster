@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Roast My Resume</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="page-shell">
+      <div class="content-card">
+        <h1>Roast My Resume</h1>
+
+        {% if error %}
+        <div class="toast error">{{ error }}</div>
+        {% endif %}
+
+        <form action="/" method="post" enctype="multipart/form-data" class="form-grid">
+          <label class="field">
+            <span>Resume PDF</span>
+            <input type="file" name="resume" accept="application/pdf" required />
+          </label>
+
+          <div class="field">
+            <span>Severity dial</span>
+            <div class="radio-group">
+              {% for option in severities %}
+              <label class="radio-label">
+                <input
+                  type="radio"
+                  name="severity"
+                  value="{{ option }}"
+                  {% if option == severity %}checked{% endif %}
+                />
+                {{ option }}
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+
+          <button type="submit" class="submit-button">Generate Roast</button>
+        </form>
+
+        {% if roast %}
+        <section class="result-card">
+          <div class="result-header">
+            <h2>Your Roast</h2>
+            <button class="share-button" type="button" onclick="copyRoast()">Copy Roast</button>
+          </div>
+          <div id="roast-output" class="roast-output"></div>
+        </section>
+        {% endif %}
+      </div>
+    </main>
+
+    <script>
+      const roastText = {{ roast | tojson }};
+      const roastOutput = document.getElementById('roast-output');
+
+      function renderRoast(text) {
+        if (!roastOutput || !text) return;
+
+        const paragraphs = text
+          .split(/\n\s*\n/)
+          .map((block) => block.trim())
+          .filter(Boolean);
+
+        const sections = [];
+        paragraphs.forEach((block, index) => {
+          if (index === 0) {
+            sections.push(`<div class="roast-paragraph">${block.replace(/\*\*/g, '')}</div>`);
+            return;
+          }
+
+          const items = block
+            .split('\n')
+            .map((line) => line.trim())
+            .filter(Boolean)
+            .map((line) => `<li>${line.replace(/^[-*•]\s*/, '').replace(/\*\*/g, '')}</li>`);
+
+          if (items.length) {
+            sections.push(`<ul class="roast-list">${items.join('')}</ul>`);
+          }
+        });
+
+        roastOutput.innerHTML = sections.join('');
+      }
+
+      if (roastOutput) {
+        renderRoast(roastText);
+      }
+
+      function copyRoast() {
+        const text = roastOutput ? roastOutput.innerText : '';
+        navigator.clipboard.writeText(text).then(() => {
+          alert('Roast copied to clipboard!');
+        });
+      }
+    </script>
+  </body>
+</html>
