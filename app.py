@@ -15,9 +15,12 @@ app.secret_key = os.getenv('FLASK_SECRET_KEY', 'roast-my-resume-secret')
 app.config['MAX_CONTENT_LENGTH'] = 6 * 1024 * 1024
 
 GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions'
-GROQ_API_KEY = os.getenv('GROQ_API_KEY')
 
 SEVERITY_OPTIONS = ['Mild', 'Spicy', 'Nuclear']
+
+
+def get_groq_api_key() -> str:
+    return os.getenv('GROQ_API_KEY', '').strip().strip('"').strip("'")
 
 
 def get_temperature(severity: str) -> float:
@@ -82,8 +85,10 @@ def index():
             error = 'Please upload a PDF resume file.'
         elif not resume_file.filename.lower().endswith('.pdf'):
             error = 'Only PDF resumes are supported.'
-        elif not GROQ_API_KEY:
-            error = 'Missing GROQ_API_KEY. Set it in .env.local or the environment.'
+        else:
+            groq_api_key = get_groq_api_key()
+            if not groq_api_key:
+                error = 'Missing GROQ_API_KEY. Set it in .env.local or the environment.'
 
         if not error:
             try:
@@ -93,11 +98,12 @@ def index():
                     raise ValueError('Unable to extract text from the PDF.')
 
                 prompt = build_prompt(resume_text[:3000], selected_severity)
+                groq_api_key = get_groq_api_key()
                 response = requests.post(
                     GROQ_API_URL,
                     headers={
                         'Content-Type': 'application/json',
-                        'Authorization': f'Bearer {GROQ_API_KEY}',
+                        'Authorization': f'Bearer {groq_api_key}',
                     },
                     json={
                         'model': 'llama-3.3-70b-versatile',
